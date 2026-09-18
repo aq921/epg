@@ -1,0 +1,582 @@
+name: Dig ?it lba EPG
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */3 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  digepg:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download and build digepg EPG
+        shell: bash
+        env:
+          H1: "prd"
+          H2: "static"
+          H31: "di"
+          H32: "gita"
+          H33: "lb"
+          H4: "spectar"
+          H5: "tv"
+        run: |
+          set -e
+
+          mkdir -p epg
+
+          HOST="${H1}-${H2}-${H31}${H32}${H33}.${H4}.${H5}"
+          URL="https://${HOST}/uploads/epg_dump_1.xml"
+
+          echo "Downloading EPG..."
+          curl -fL \
+            --retry 5 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            --connect-timeout 30 \
+            --max-time 300 \
+            -A "Mozilla/5.0" \
+            "$URL" \
+            -o /tmp/digepg-source.xml
+
+          echo "Building final EPG..."
+
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          source_file = Path("/tmp/digepg-source.xml")
+          channels = r'''
+          <channel id="12926">
+          <display-name>Top Channel HD</display-name>
+          <icon src="__ICON__12926"/>
+          </channel>
+          <channel id="184056">
+          <display-name>Top Channel HD +6</display-name>
+          <icon src="__ICON__184056"/>
+          </channel>
+          <channel id="12488">
+          <display-name>Top News</display-name>
+          <icon src="__ICON__12488"/>
+          </channel>
+          <channel id="12930">
+          <display-name>T HD</display-name>
+          <icon src="__ICON__12930"/>
+          </channel>
+          <channel id="8584">
+          <display-name>RTSH Shqip</display-name>
+          <icon src="__ICON__8584"/>
+          </channel>
+          <channel id="7489">
+          <display-name>Stinet</display-name>
+          <icon src="__ICON__7489"/>
+          </channel>
+          <channel id="12495">
+          <display-name>My Music</display-name>
+          <icon src="__ICON__12495"/>
+          </channel>
+          <channel id="89227">
+          <display-name>Klan Kosova</display-name>
+          <icon src="__ICON__89227"/>
+          </channel>
+          <channel id="307419">
+          <display-name>Big Brother 1</display-name>
+          <icon src="__ICON__307419"/>
+          </channel>
+          <channel id="307421">
+          <display-name>Big Brother 2</display-name>
+          <icon src="__ICON__307421"/>
+          </channel>
+          <channel id="16377">
+          <display-name>Bang Bang</display-name>
+          <icon src="__ICON__16377"/>
+          </channel>
+          <channel id="12498">
+          <display-name>Cufo TV</display-name>
+          <icon src="__ICON__12498"/>
+          </channel>
+          <channel id="7510">
+          <display-name>Junior TV</display-name>
+          <icon src="__ICON__7510"/>
+          </channel>
+          <channel id="7612">
+          <display-name>Baby TV</display-name>
+          <icon src="__ICON__7612"/>
+          </channel>
+          <channel id="7618">
+          <display-name>Nicktoons</display-name>
+          <icon src="__ICON__7618"/>
+          </channel>
+          <channel id="17413">
+          <display-name>Nickelodeon</display-name>
+          <icon src="__ICON__17413"/>
+          </channel>
+          <channel id="9325">
+          <display-name></display-name>
+          <icon src="__ICON__9325"/>
+          </channel>
+          <channel id="12931">
+          <display-name>Film Gold</display-name>
+          <icon src="__ICON__12931"/>
+          </channel>
+          <channel id="12934">
+          <display-name>Film Max</display-name>
+          <icon src="__ICON__12934"/>
+          </channel>
+          <channel id="9328">
+          <display-name>Family HD</display-name>
+          <icon src="__ICON__9328"/>
+          </channel>
+          <channel id="7825">
+          <display-name>EuroFilm</display-name>
+          <icon src="__ICON__7825"/>
+          </channel>
+          <channel id="8088">
+          <display-name>Film Autor</display-name>
+          <icon src="__ICON__8088"/>
+          </channel>
+          <channel id="9414">
+          <display-name>Film Hits HD</display-name>
+          <icon src="__ICON__9414"/>
+          </channel>
+          <channel id="8149">
+          <display-name>Film Thriller</display-name>
+          <icon src="__ICON__8149"/>
+          </channel>
+          <channel id="8151">
+          <display-name>Film Drame</display-name>
+          <icon src="__ICON__8151"/>
+          </channel>
+          <channel id="13211">
+          <display-name>Film Aksion HD</display-name>
+          <icon src="__ICON__13211"/>
+          </channel>
+          <channel id="8218">
+          <display-name>Film Komedi</display-name>
+          <icon src="__ICON__8218"/>
+          </channel>
+          <channel id="8220">
+          <display-name>FOX Movies</display-name>
+          <icon src="__ICON__8220"/>
+          </channel>
+          <channel id="8223">
+          <display-name>FOX</display-name>
+          <icon src="__ICON__8223"/>
+          </channel>
+          <channel id="8425">
+          <display-name>FOX Life</display-name>
+          <icon src="__ICON__8425"/>
+          </channel>
+          <channel id="11361">
+          <display-name>Seriale Turke HD</display-name>
+          <icon src="__ICON__11361"/>
+          </channel>
+          <channel id="11362">
+          <display-name>FilmBox Premium HD</display-name>
+          <icon src="__ICON__11362"/>
+          </channel>
+          <channel id="32196">
+          <display-name>Klan Music</display-name>
+          <icon src="__ICON__32196"/>
+          </channel>
+          <channel id="32229">
+          <display-name>Klan News</display-name>
+          <icon src="__ICON__32229"/>
+          </channel>
+          <channel id="8437">
+          <display-name>Klan Macedonia</display-name>
+          <icon src="__ICON__8437"/>
+          </channel>
+          <channel id="8440">
+          <display-name>Klan Plus</display-name>
+          <icon src="__ICON__8440"/>
+          </channel>
+          <channel id="13261">
+          <display-name>Klan TV HD</display-name>
+          <icon src="__ICON__13261"/>
+          </channel>
+          <channel id="184058">
+          <display-name>Klan TV HD +6</display-name>
+          <icon src="__ICON__184058"/>
+          </channel>
+          <channel id="13264">
+          <display-name>ABC News HD</display-name>
+          <icon src="__ICON__13264"/>
+          </channel>
+          <channel id="12676">
+          <display-name>Ora News</display-name>
+          <icon src="__ICON__12676"/>
+          </channel>
+          <channel id="11184">
+          <display-name>RTV Ora HD</display-name>
+          <icon src="__ICON__11184"/>
+          </channel>
+          <channel id="11183">
+          <display-name>A2 CNN HD</display-name>
+          <icon src="__ICON__11183"/>
+          </channel>
+          <channel id="12690">
+          <display-name>News 24</display-name>
+          <icon src="__ICON__12690"/>
+          </channel>
+          <channel id="8446">
+          <display-name>Fax News</display-name>
+          <icon src="__ICON__8446"/>
+          </channel>
+          <channel id="8449">
+          <display-name>MCN TV</display-name>
+          <icon src="__ICON__8449"/>
+          </channel>
+          <channel id="8451">
+          <display-name>Scan TV</display-name>
+          <icon src="__ICON__8451"/>
+          </channel>
+          <channel id="12694">
+          <display-name>Report TV</display-name>
+          <icon src="__ICON__12694"/>
+          </channel>
+          <channel id="11181">
+          <display-name>Euronews Albania</display-name>
+          <icon src="__ICON__11181"/>
+          </channel>
+          <channel id="32319">
+          <display-name>Info24</display-name>
+          <icon src="__ICON__32319"/>
+          </channel>
+          <channel id="8545">
+          <display-name>Syri TV</display-name>
+          <icon src="__ICON__8545"/>
+          </channel>
+          <channel id="12004">
+          <display-name>RTV 21 HD</display-name>
+          <icon src="__ICON__12004"/>
+          </channel>
+          <channel id="12196">
+          <display-name>KTV</display-name>
+          <icon src="__ICON__12196"/>
+          </channel>
+          <channel id="12361">
+          <display-name>T7</display-name>
+          <icon src="__ICON__12361"/>
+          </channel>
+          <channel id="32316">
+          <display-name>Zico TV</display-name>
+          <icon src="__ICON__32316"/>
+          </channel>
+          <channel id="32361">
+          <display-name>First Channel</display-name>
+          <icon src="__ICON__32361"/>
+          </channel>
+          <channel id="8664">
+          <display-name>RTK-1</display-name>
+          <icon src="__ICON__8664"/>
+          </channel>
+          <channel id="12363">
+          <display-name>ATV</display-name>
+          <icon src="__ICON__12363"/>
+          </channel>
+          <channel id="89260">
+          <display-name>Dukagjini</display-name>
+          <icon src="__ICON__89260"/>
+          </channel>
+          <channel id="89253">
+          <display-name>Kanal 10</display-name>
+          <icon src="__ICON__89253"/>
+          </channel>
+          <channel id="32373">
+          <display-name>RTV 21 M</display-name>
+          <icon src="__ICON__32373"/>
+          </channel>
+          <channel id="89251">
+          <display-name>Alsat M</display-name>
+          <icon src="__ICON__89251"/>
+          </channel>
+          <channel id="8563">
+          <display-name>Star Plus TV</display-name>
+          <icon src="__ICON__8563"/>
+          </channel>
+          <channel id="8587">
+          <display-name>RTSH 1</display-name>
+          <icon src="__ICON__8587"/>
+          </channel>
+          <channel id="8638">
+          <display-name>RTSH Shkolle</display-name>
+          <icon src="__ICON__8638"/>
+          </channel>
+          <channel id="8560">
+          <display-name>Zjarr TV</display-name>
+          <icon src="__ICON__8560"/>
+          </channel>
+          <channel id="12841">
+          <display-name>EXP shkence</display-name>
+          <icon src="__ICON__12841"/>
+          </channel>
+          <channel id="12842">
+          <display-name>EXP histori</display-name>
+          <icon src="__ICON__12842"/>
+          </channel>
+          <channel id="12844">
+          <display-name>EXP natyra</display-name>
+          <icon src="__ICON__12844"/>
+          </channel>
+          <channel id="11999">
+          <display-name>National Geographic</display-name>
+          <icon src="__ICON__11999"/>
+          </channel>
+          <channel id="11194">
+          <display-name>Travel Channel HD</display-name>
+          <icon src="__ICON__11194"/>
+          </channel>
+          <channel id="8701">
+          <display-name>24 Kitchen</display-name>
+          <icon src="__ICON__8701"/>
+          </channel>
+          <channel id="11196">
+          <display-name>Animal Planet HD</display-name>
+          <icon src="__ICON__11196"/>
+          </channel>
+          <channel id="8910">
+          <display-name>Discovery Channel</display-name>
+          <icon src="__ICON__8910"/>
+          </channel>
+          <channel id="11774">
+          <display-name>ID Xtra HD</display-name>
+          <icon src="__ICON__11774"/>
+          </channel>
+          <channel id="8908">
+          <display-name>TLC</display-name>
+          <icon src="__ICON__8908"/>
+          </channel>
+          <channel id="11356">
+          <display-name>Discovery Science HD</display-name>
+          <icon src="__ICON__11356"/>
+          </channel>
+          <channel id="8997">
+          <display-name>Discovery Turbo Xtra</display-name>
+          <icon src="__ICON__8997"/>
+          </channel>
+          <channel id="11755">
+          <display-name>DocuBox HD</display-name>
+          <icon src="__ICON__11755"/>
+          </channel>
+          <channel id="11769">
+          <display-name>Fast&amp;FunBox HD</display-name>
+          <icon src="__ICON__11769"/>
+          </channel>
+          <channel id="11771">
+          <display-name>FightBox HD</display-name>
+          <icon src="__ICON__11771"/>
+          </channel>
+          <channel id="13594">
+          <display-name>MTV Live HD</display-name>
+          <icon src="__ICON__13594"/>
+          </channel>
+          <channel id="9181">
+          <display-name>Melody.TV</display-name>
+          <icon src="__ICON__9181"/>
+          </channel>
+          <channel id="9280">
+          <display-name>SuperSonic TV</display-name>
+          <icon src="__ICON__9280"/>
+          </channel>
+          <channel id="9295">
+          <display-name>STV Folk</display-name>
+          <icon src="__ICON__9295"/>
+          </channel>
+          <channel id="8542">
+          <display-name>IN tv</display-name>
+          <icon src="__ICON__8542"/>
+          </channel>
+          <channel id="81287">
+          <display-name>Rai 1</display-name>
+          <icon src="__ICON__81287"/>
+          </channel>
+          <channel id="81298">
+          <display-name>Rai 2</display-name>
+          <icon src="__ICON__81298"/>
+          </channel>
+          <channel id="81299">
+          <display-name>Canale 5</display-name>
+          <icon src="__ICON__81299"/>
+          </channel>
+          <channel id="81302">
+          <display-name>Italia 1</display-name>
+          <icon src="__ICON__81302"/>
+          </channel>
+          <channel id="11358">
+          <display-name>Dorcel XXX HD</display-name>
+          <icon src="__ICON__11358"/>
+          </channel>
+          <channel id="12000">
+          <display-name>Dorcel HD</display-name>
+          <icon src="__ICON__12000"/>
+          </channel>
+          <channel id="11360">
+          <display-name>Playboy HD</display-name>
+          <icon src="__ICON__11360"/>
+          </channel>
+          <channel id="9297">
+          <display-name>X1</display-name>
+          <icon src="__ICON__9297"/>
+          </channel>
+          </channel>
+          <channel id="8650">
+          <display-name>RTSH Sport</display-name>
+          <icon src="__ICON__8650"/>
+          </channel>
+          <channel id="13432">
+          <display-name>Supersport 1</display-name>
+          <icon src="__ICON__13432"/>
+          </channel>
+          <channel id="13433">
+          <display-name>Supersport 2</display-name>
+          <icon src="__ICON__13433"/>
+          </channel>
+          <channel id="13435">
+          <display-name>Supersport 3</display-name>
+          <icon src="__ICON__13435"/>
+          </channel>
+          <channel id="13561">
+          <display-name>Supersport 4</display-name>
+          <icon src="__ICON__13561"/>
+          </channel>
+          <channel id="13564">
+          <display-name>Supersport 5</display-name>
+          <icon src="__ICON__13564"/>
+          </channel>
+          <channel id="13591">
+          <display-name>Supersport 6</display-name>
+          <icon src="__ICON__13591"/>
+          </channel>
+          <channel id="11193">
+          <display-name>Supersport 7</display-name>
+          <icon src="__ICON__11193"/>
+          </channel>
+          <channel id="11775">
+          <display-name>EuroSport 1</display-name>
+          <icon src="__ICON__11775"/>
+          </channel>
+          <channel id="11997">
+          <display-name>EuroSport 2</display-name>
+          <icon src="__ICON__11997"/>
+          </channel>
+          '''
+
+          channel_count = len(re.findall(r"<channel\b", channels))
+          print(f"Found {channel_count} channel definitions")
+          if channel_count != 103:
+              raise SystemExit(f"ERROR: Expected 103 channel definitions, found {channel_count}")
+
+          h1, h2, h31, h32, h33, h4, h5 = "prd", "static", "di", "gita", "lb", "spectar", "tv"
+          host = f"{h1}-{h2}-{h31}{h32}{h33}.{h4}.{h5}"
+          icon = f"https://{host}/rev-1665480307/image_transform.php/transform/1/instance_id/1/video_id/"
+          channels = channels.replace("__ICON__", icon)
+
+          source = source_file.read_text(encoding="utf-8", errors="replace")
+
+          # Escape bare ampersands in source programme data while preserving
+          # already-valid XML entities.
+          source = re.sub(
+              r"&(?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9A-Fa-f]+;)",
+              "&amp;",
+              source
+          )
+
+          # Extract only the contents inside the source <tv> element and build
+          # a fresh XMLTV document around the programme data.
+          tv_match = re.search(
+              r"<tv\b[^>]*>(.*)</tv>\s*$",
+              source,
+              re.IGNORECASE | re.DOTALL
+          )
+
+          if not tv_match:
+              raise SystemExit(
+                  "ERROR: Could not extract the <tv> contents from the source EPG"
+              )
+
+          programmes = tv_match.group(1).strip()
+
+          new_header = (
+              '<tv source-info-name="prd-digepg.spectar.tv" '
+              'generator-info-name="spectar_epg">'
+          )
+
+          guide = (
+              '<?xml version="1.0" encoding="UTF-8"?>\n'
+              + new_header
+              + "\n"
+              + channels
+              + "\n"
+              + programmes
+              + "\n</tv>\n"
+          )
+
+          # Remove only the known accidental duplicate closing tag from the
+          # original channel list before channel 8650.
+          guide = guide.replace(
+              '</channel>\n</channel>\n<channel id="8650">',
+              '</channel>\n<channel id="8650">'
+          )
+
+          output_file = Path("epg/digepg-guide.xml")
+          output_file.write_text(guide, encoding="utf-8")
+          print(f"Created {output_file}")
+          print(f"Size: {output_file.stat().st_size} bytes")
+          PY
+
+      - name: Validate EPG XML
+        shell: bash
+        run: |
+          set -e
+
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+
+          file = "epg/digepg-guide.xml"
+
+          try:
+              ET.parse(file)
+              print("EPG XML is valid.")
+          except Exception as e:
+              print("ERROR: EPG XML is invalid:")
+              print(e)
+              raise
+          PY
+
+      - name: Create gzip version
+        shell: bash
+        run: |
+          set -e
+
+          gzip -9 -c \
+            epg/digepg-guide.xml \
+            > epg/digepg-guide.xml.gz
+
+          ls -lh epg/digepg-guide.xml
+          ls -lh epg/digepg-guide.xml.gz
+
+      - name: Save digepg EPG
+        shell: bash
+        run: |
+          set -e
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            epg/digepg-guide.xml \
+            epg/digepg-guide.xml.gz
+
+          if git diff --cached --quiet; then
+            echo "No EPG changes."
+          else
+            git commit -m "Update digepg EPG"
+            git push
+          fi
