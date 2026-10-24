@@ -33,8 +33,23 @@ jobs:
       - name: Save EPG
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com
+          
+          # Fetch the latest remote changes first without modifying working tree
+          git fetch origin master
+          
+          # Stage the generated epg folder
           git add epg/
-          git pull origin master --rebase
-          git diff --cached --quiet || git commit -m "Update EPG"
-          git push
+          
+          # Try pulling with rebase against the fetched remote branch
+          git pull origin master --rebase || {
+            echo "Rebase failed, attempting to reset and apply cleanly..."
+            git rebase --abort || true
+            git reset
+            git add epg/
+            git pull origin master --rebase
+          }
+          
+          # Commit and push changes if any exist
+          git diff --cached --quiet || git commit -m "Update EPG [skip ci]"
+          git push origin master
